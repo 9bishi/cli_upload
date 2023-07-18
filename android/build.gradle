@@ -14,9 +14,14 @@ buildscript {
 allprojects {
     repositories {
         google()
-        mavenCentral()
+        jcenter()
+        maven {
+            url "http://maven.aliyun.com/nexus/content/repositories/jcenter"
+            allowInsecureProtocol = true
+        }
     }
 }
+
 
 rootProject.buildDir = '../build'
 subprojects {
@@ -28,10 +33,4 @@ subprojects {
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
-}
-
-repositories {
-maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
-maven { url 'https://maven.aliyun.com/repository/google' }
-maven { url 'http://maven.aliyun.com/nexus/content/repositories/jcenter' }
 }

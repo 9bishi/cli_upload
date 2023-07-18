@@ -69,9 +69,3 @@ flutter {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
-
-repositories {
-maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
-maven { url 'https://maven.aliyun.com/repository/google' }
-maven { url 'http://maven.aliyun.com/nexus/content/repositories/jcenter' }
-}

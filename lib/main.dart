@@ -6,12 +6,30 @@ import 'package:file_picker/file_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 
-class VideoUploadApp extends StatefulWidget {
-  @override
-  _VideoUploadAppState createState() => _VideoUploadAppState();
+void main() {
+  runApp(VideoUploadApp());
 }
 
-class _VideoUploadAppState extends State<VideoUploadApp> {
+class VideoUploadApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '视频上传',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: VideoUploadHomePage(),
+    );
+  }
+}
+
+class VideoUploadHomePage extends StatefulWidget {
+  @override
+  _VideoUploadHomePageState createState() => _VideoUploadHomePageState();
+}
+
+class _VideoUploadHomePageState extends State<VideoUploadHomePage> {
   List<File> _selectedVideos = [];
   List<double> _uploadProgressList = [];
   List<bool> _uploadingList = [];
@@ -37,6 +55,16 @@ class _VideoUploadAppState extends State<VideoUploadApp> {
         _uploadRecordsList = List<List<String>>.filled(files.length, []);
       });
     }
+  }
+
+  Future<void> _uploadVideos() async {
+    List<Future<void>> uploadTasks = [];
+
+    for (int i = 0; i < _selectedVideos.length; i++) {
+      uploadTasks.add(_uploadVideo(i));
+    }
+
+    await Future.wait(uploadTasks);
   }
 
   Future<void> _uploadVideo(int index) async {
@@ -133,36 +161,41 @@ class _VideoUploadAppState extends State<VideoUploadApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '视频上传',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('视频上传'),
       ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('视频上传'),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              ElevatedButton(
-                onPressed: _selectVideos,
-                child: Text('选择视频'),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            ElevatedButton(
+              onPressed: _selectVideos,
+              child: Text('选择视频'),
+            ),
+            SizedBox(height: 20.0),
+            ElevatedButton(
+              onPressed: _uploadVideos,
+              child: Text('上传视频'),
+            ),
+            SizedBox(height: 20.0),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _selectedVideos.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return VideoUploadWidget(
+                    file: _selectedVideos[index],
+                    uploadProgress: _uploadProgressList[index],
+                    uploading: _uploadingList[index],
+                    uploadStatus: _uploadStatusList[index],
+                    videoUrl: _videoUrlList[index],
+                    uploadRecords: _uploadRecordsList[index],
+                  );
+                },
               ),
-              SizedBox(height: 20.0),
-              for (int i = 0; i < _selectedVideos.length; i++)
-                VideoUploadWidget(
-                  file: _selectedVideos[i],
-                  uploadProgress: _uploadProgressList[i],
-                  uploading: _uploadingList[i],
-                  uploadStatus: _uploadStatusList[i],
-                  videoUrl: _videoUrlList[i],
-                  uploadRecords: _uploadRecordsList[i],
-                  onUpload: () => _uploadVideo(i),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -176,7 +209,6 @@ class VideoUploadWidget extends StatelessWidget {
   final String uploadStatus;
   final String? videoUrl;
   final List<String> uploadRecords;
-  final VoidCallback onUpload;
 
   const VideoUploadWidget({
     Key? key,
@@ -186,38 +218,38 @@ class VideoUploadWidget extends StatelessWidget {
     required this.uploadStatus,
     required this.videoUrl,
     required this.uploadRecords,
-    required this.onUpload,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (file != null)
-          Container(
-            height: 200.0,
-            child: VideoPlayerWidget(file: file),
-          ),
-        SizedBox(height: 20.0),
-        ElevatedButton(
-          onPressed: uploading ? null : onUpload,
-          child: Text('上传视频'),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (file != null)
+              Container(
+                height: 200.0,
+                child: VideoPlayerWidget(file: file),
+              ),
+            SizedBox(height: 20.0),
+            if (uploading)
+              LinearProgressIndicator(value: uploadProgress),
+            SizedBox(height: 10.0),
+            Text(uploadStatus),
+            SizedBox(height: 10.0),
+            if (videoUrl != null)
+              Text('视频网址: $videoUrl'),
+            SizedBox(height: 10.0),
+            Text('上传记录:'),
+            Column(
+              children: uploadRecords.map((record) => Text(record)).toList(),
+            ),
+            SizedBox(height: 20.0),
+          ],
         ),
-        SizedBox(height: 10.0),
-        if (uploading)
-          LinearProgressIndicator(value: uploadProgress),
-        SizedBox(height: 10.0),
-        Text(uploadStatus),
-        SizedBox(height: 10.0),
-        if (videoUrl != null)
-          Text('视频网址: $videoUrl'),
-        SizedBox(height: 10.0),
-        Text('上传记录:'),
-        Column(
-          children: uploadRecords.map((record) => Text(record)).toList(),
-        ),
-        SizedBox(height: 20.0),
-      ],
+      ),
     );
   }
 }
@@ -264,8 +296,3 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     );
   }
 }
-
-void main() {
-  runApp(VideoUploadApp());
-}
-
