@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'package:video_player/video_player.dart';
@@ -58,37 +60,57 @@ class _VideoUploadHomePageState extends State<VideoUploadHomePage> {
   }
 
   Future<void> _uploadVideos() async {
-    List<Future<void>> uploadTasks = [];
-
     for (int i = 0; i < _selectedVideos.length; i++) {
-      uploadTasks.add(_uploadVideo(i));
+      await _compressAndUploadVideo(i);
     }
 
-    await Future.wait(uploadTasks);
+    // 上传完成后清除缓存
+    for (int i = 0; i < _selectedVideos.length; i++) {
+      File selectedVideo = _selectedVideos[i];
+      if (selectedVideo.existsSync()) {
+        selectedVideo.deleteSync();
+      }
+    }
   }
 
-  Future<void> _uploadVideo(int index) async {
+  Future<void> _compressAndUploadVideo(int index) async {
     File selectedVideo = _selectedVideos[index];
-    double uploadProgress = 0.0;
-    bool uploading = true;
-    String uploadStatus = '';
-    String? videoUrl;
-    List<String> uploadRecords = [];
+
+    // 获取应用的缓存目录
+    Directory cacheDir = await getTemporaryDirectory();
+    String tempVideoPath = path.join(cacheDir.path, 'temp_video.mp4');
 
     setState(() {
-      _uploadProgressList[index] = uploadProgress;
-      _uploadingList[index] = uploading;
-      _uploadStatusList[index] = uploadStatus;
-      _videoUrlList[index] = videoUrl;
-      _uploadRecordsList[index] = uploadRecords;
+      _uploadingList[index] = true;
+      _uploadStatusList[index] = '视频压缩中...';
+    });
+
+    // 使用flutter_ffmpeg压缩视频
+    final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
+    int rc = await _flutterFFmpeg.execute(
+        '-i ${selectedVideo.path} -b:v 1M $tempVideoPath');
+
+    if (rc != 0) {
+      // 压缩失败
+      setState(() {
+        _uploadingList[index] = false;
+        _uploadStatusList[index] = '压缩失败';
+      });
+      return;
+    }
+
+    // 压缩成功，开始上传压缩后的视频
+    setState(() {
+      _uploadProgressList[index] = 0.0;
+      _uploadStatusList[index] = '上传中...';
     });
 
     String apiUrl = 'https://cdn.cli.plus/api.php';
 
     FormData formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
-        selectedVideo.path,
-        filename: path.basename(selectedVideo.path),
+        tempVideoPath,
+        filename: path.basename(tempVideoPath),
       ),
       'format': 'json',
       'show': 1,
@@ -104,8 +126,7 @@ class _VideoUploadHomePageState extends State<VideoUploadHomePage> {
         onSendProgress: (sent, total) {
           double progress = sent / total;
           setState(() {
-            uploadProgress = progress;
-            _uploadProgressList[index] = uploadProgress;
+            _uploadProgressList[index] = progress;
           });
         },
         options: Options(
@@ -126,34 +147,28 @@ class _VideoUploadHomePageState extends State<VideoUploadHomePage> {
         // 获取其他返回参数并根据需求使用
         // ...
 
+        List<String> uploadRecords = _uploadRecordsList[index];
         uploadRecords.add(DateTime.now().toString());
 
         setState(() {
-          uploading = false;
-          uploadStatus = '上传完成！';
-          _uploadingList[index] = uploading;
-          _uploadStatusList[index] = uploadStatus;
-          videoUrl = videoUrl;
+          _uploadingList[index] = false;
+          _uploadStatusList[index] = '上传完成！';
           _videoUrlList[index] = videoUrl;
           _uploadRecordsList[index] = uploadRecords;
         });
       } else {
         // 处理错误响应
         setState(() {
-          uploading = false;
-          uploadStatus = '上传失败';
-          _uploadingList[index] = uploading;
-          _uploadStatusList[index] = uploadStatus;
+          _uploadingList[index] = false;
+          _uploadStatusList[index] = '上传失败';
         });
         return;
       }
     } catch (error) {
       // 处理网络请求错误
       setState(() {
-        uploading = false;
-        uploadStatus = '上传失败';
-        _uploadingList[index] = uploading;
-        _uploadStatusList[index] = uploadStatus;
+        _uploadingList[index] = false;
+        _uploadStatusList[index] = '上传失败';
       });
       return;
     }
@@ -230,7 +245,7 @@ class VideoUploadWidget extends StatelessWidget {
           children: <Widget>[
             if (file != null)
               Container(
-                height: 200.0,
+                height: 200,
                 child: VideoPlayerWidget(file: file),
               ),
             SizedBox(height: 20.0),

@@ -31,11 +31,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  dio: ^4.0.0
   file_picker: ^4.0.0
-  video_player: ^2.2.5
-  chewie: ^1.0.0
+  dio: ^4.0.0
+  video_player: ^2.1.12
+  chewie: ^1.4.2
+  flutter_ffmpeg: ^0.4.2
+  path_provider: ^2.0.5 
+  
+
+
 
 
 
