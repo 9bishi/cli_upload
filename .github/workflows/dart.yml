@@ -35,3 +35,11 @@ jobs:
     - uses: JS-DevTools/npm-publish@v1
       with:
         token: ${{ secrets.NPM_TOKEN }}
+      # 发布到 Release
+    - name: Release apk
+      uses: ncipollo/release-action@v1.5.0
+      with:
+        artifacts: "build/app/outputs/flutter-apk/*.apk"
+        token: ${{ secrets.GIT_TOKEN }} 
+        commit: master
+        tag: v1.0.${{ github.run_number }}   

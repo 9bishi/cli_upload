@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+// Add the IJKPlayer plugin import here
 
 void main() {
   runApp(VideoUploadApp());
@@ -296,3 +297,4 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     );
   }
 }
+
