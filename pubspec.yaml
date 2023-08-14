@@ -32,7 +32,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  dio: ^4.0.0
+  dio: ^5.3.2
   file_picker: ^4.0.0
   video_player: ^2.2.5
   chewie: ^1.0.0
